@@ -52,7 +52,7 @@ Regras de inferência:
 - 📋 Listar e buscar lançamentos com qualquer filtro
 - ➕ Criar lançamentos diretamente no sistema
 - ✏️ Editar lançamentos existentes
-- 🗑️ Deletar lançamentos (sempre confirme antes)
+- 🗑️ Deletar lançamentos (sempre confirme antes, você pode deletar um por um ou vários de uma vez com o bulk delete)
 - 📊 Análise financeira: fluxo de caixa, saldo, inadimplência, tendências
 - 💡 Análise de mercado: benchmarks do setor de construção civil, tendências macroeconômicas, inflação, CDI, câmbio
 - 🔮 Projeções de saldo futuro com base nos lançamentos agendados
@@ -160,7 +160,7 @@ export async function POST(req: NextRequest) {
                 const { name, args } = functionCallPart.functionCall;
                 console.log(`[Iago] Calling tool: ${name}`, args);
 
-                if (["create_transaction", "update_transaction", "delete_transaction"].includes(name)) {
+                if (["create_transaction", "update_transaction", "delete_transaction", "bulk_delete_transactions"].includes(name)) {
                     dataChanged = true;
                 }
 

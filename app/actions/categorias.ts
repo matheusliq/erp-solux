@@ -62,3 +62,17 @@ export async function updateCategory(id: string, data: { name: string; color: st
         return { success: false, error: "Falha ao atualizar categoria." };
     }
 }
+
+export async function deleteCategory(id: string) {
+    try {
+        await prisma.categories.delete({ where: { id } });
+        revalidatePath("/configuracoes");
+        return { success: true };
+    } catch (error: any) {
+        console.error("deleteCategory error:", error);
+        if (error.code === 'P2003') {
+            return { success: false, error: "Não é possível excluir esta categoria pois existem lançamentos financeiros vinculados a ela." };
+        }
+        return { success: false, error: "Falha ao excluir categoria." };
+    }
+}

@@ -14,7 +14,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { createCategory, getCategories, updateCategory } from "@/app/actions/categorias";
+import { createCategory, getCategories, updateCategory, deleteCategory } from "@/app/actions/categorias";
 import { getEntities, createEntity, updateEntity, deleteEntity } from "@/app/actions/entidades";
 import { getProjects, createProject, updateProject, deleteProject } from "@/app/actions/projetos";
 
@@ -73,6 +73,7 @@ function ProjectFinancialSummary({
     soluxReserve?: number;
     partnersSplit: any[];
 }) {
+    const [entradas, setEntradas] = useState<number | null>(null);
     const [saidas, setSaidas] = useState<number | null>(null);
     const [loading, setLoading] = useState(false);
 
@@ -84,48 +85,66 @@ function ProjectFinancialSummary({
             .then(r => r.json())
             .then((data: any) => {
                 if (cancelled) return;
-                // API returns { transactions: [...] }
                 const list: any[] = Array.isArray(data) ? data : (data?.transactions || []);
-                const total = list
+                const paidList = list.filter((t: any) => t.status === "Pago");
+
+                const totalEntradas = paidList
+                    .filter((t: any) => t.type === "Entrada" || t.type === "entrada")
+                    .reduce((acc: number, t: any) => acc + (Number(t.amount) || 0), 0);
+
+                const totalSaidas = paidList
                     .filter((t: any) => t.type === "Sa_da" || t.type === "Saída" || t.type === "saida")
                     .reduce((acc: number, t: any) => acc + (Number(t.amount) || 0), 0);
-                setSaidas(total);
+
+                setEntradas(totalEntradas);
+                setSaidas(totalSaidas);
             })
-            .catch(() => { if (!cancelled) setSaidas(null); })
+            .catch(() => {
+                if (!cancelled) {
+                    setEntradas(null);
+                    setSaidas(null);
+                }
+            })
             .finally(() => { if (!cancelled) setLoading(false); });
         return () => { cancelled = true; };
     }, [projectId]);
 
-    const saldo = contractValue !== undefined && saidas !== null
-        ? contractValue - (soluxReserve || 0) - saidas
+    const saldo = entradas !== null && saidas !== null
+        ? entradas - (soluxReserve || 0) - saidas
         : null;
 
     return (
         <div className="space-y-1.5">
             {contractValue !== undefined && (
-                <div className="flex items-baseline gap-1.5">
-                    <span className="text-[9px] text-zinc-600 font-bold uppercase tracking-widest w-16 shrink-0">Orçamento</span>
-                    <span className="text-sm font-extrabold text-blue-400">{fmtBRL(contractValue)}</span>
+                <div className="flex items-baseline gap-1.5 opacity-60">
+                    <span className="text-[9px] text-zinc-600 font-bold uppercase tracking-widest w-20 shrink-0">Orçamento</span>
+                    <span className="text-xs font-bold text-zinc-400">{fmtBRL(contractValue)}</span>
                 </div>
             )}
+            <div className="flex items-baseline gap-1.5">
+                <span className="text-[9px] text-zinc-600 font-bold uppercase tracking-widest w-20 shrink-0">Entradas</span>
+                {loading
+                    ? <span className="text-[11px] text-zinc-600 animate-pulse">…</span>
+                    : <span className="text-[11px] font-bold text-emerald-400">{entradas !== null ? `+ ${fmtBRL(entradas)}` : "—"}</span>}
+            </div>
             {soluxReserve !== undefined && soluxReserve > 0 && (
                 <div className="flex items-baseline gap-1.5">
-                    <span className="text-[9px] text-zinc-600 font-bold uppercase tracking-widest w-16 shrink-0">Reserva</span>
+                    <span className="text-[9px] text-zinc-600 font-bold uppercase tracking-widest w-20 shrink-0">Reserva</span>
                     <span className="text-[11px] font-bold text-rose-400">- {fmtBRL(soluxReserve)}</span>
                 </div>
             )}
             <div className="flex items-baseline gap-1.5">
-                <span className="text-[9px] text-zinc-600 font-bold uppercase tracking-widest w-16 shrink-0">Saídas</span>
+                <span className="text-[9px] text-zinc-600 font-bold uppercase tracking-widest w-20 shrink-0">Saídas</span>
                 {loading
                     ? <span className="text-[11px] text-zinc-600 animate-pulse">…</span>
                     : <span className="text-[11px] font-bold text-rose-500">{saidas !== null ? `- ${fmtBRL(saidas)}` : "—"}</span>}
             </div>
-            <div className="flex items-baseline gap-1.5">
-                <span className="text-[9px] text-zinc-600 font-bold uppercase tracking-widest w-16 shrink-0">Saldo</span>
+            <div className="flex items-baseline gap-1.5 pt-1 border-t border-zinc-800/50 mt-1.5">
+                <span className="text-[9px] text-zinc-600 font-bold uppercase tracking-widest w-20 shrink-0">Saldo</span>
                 {loading
                     ? <span className="text-[11px] text-zinc-600 animate-pulse">…</span>
                     : saldo !== null
-                        ? <span className={`text-[11px] font-bold ${saldo >= 0 ? "text-emerald-400" : "text-rose-500"}`}>{fmtBRL(saldo)}</span>
+                        ? <span className={`text-xs font-bold ${saldo >= 0 ? "text-emerald-400" : "text-rose-500"}`}>{fmtBRL(saldo)}</span>
                         : <span className="text-[11px] text-zinc-600">—</span>}
             </div>
             {partnersSplit.length > 0 && (
@@ -297,9 +316,16 @@ export default function ConfiguracoesPage() {
 
     const handleDelete = async (tab: string, id: string) => {
         if (!confirm("Excluir este item?")) return;
-        if (tab === "entidades") await deleteEntity(id);
-        else if (tab === "obras") await deleteProject(id);
-        await carregarDados();
+        let response;
+        if (tab === "categorias") response = await deleteCategory(id);
+        else if (tab === "entidades") response = await deleteEntity(id);
+        else if (tab === "obras") response = await deleteProject(id);
+
+        if (response && !response.success) {
+            alert("Erro ao excluir: " + (response.error || "Erro desconhecido"));
+        } else {
+            await carregarDados();
+        }
     };
 
     const isSaveDisabled = () => {
@@ -626,7 +652,14 @@ export default function ConfiguracoesPage() {
                                         {cat.type === "Entrada" ? "Receita / Entrada" : "Despesa / Saída"}
                                     </p>
                                 </div>
-                                <Tag size={18} className="text-zinc-600 group-hover:text-zinc-400 transition-colors" />
+                                <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity" onClick={e => e.stopPropagation()}>
+                                    <button onClick={(e) => { e.stopPropagation(); handleOpenModal(cat); }} className="w-8 h-8 rounded bg-zinc-800 hover:bg-zinc-700 flex items-center justify-center text-zinc-400 hover:text-white transition-colors">
+                                        <Pencil size={14} />
+                                    </button>
+                                    <button onClick={(e) => { e.stopPropagation(); handleDelete("categorias", cat.id); }} className="w-8 h-8 rounded bg-zinc-800 hover:bg-rose-900/60 flex items-center justify-center text-zinc-400 hover:text-rose-400 transition-colors">
+                                        <Trash2 size={14} />
+                                    </button>
+                                </div>
                             </div>
                         ))
                     )}

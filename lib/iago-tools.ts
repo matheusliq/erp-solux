@@ -157,6 +157,21 @@ export const TOOL_DECLARATIONS = [
         },
     },
     {
+        name: "bulk_delete_transactions",
+        description: "Deleta vários lançamentos de uma só vez baseando-se em uma lista de IDs. Peça confirmação expressa revelando os itens antes de executar esta exclusão em massa.",
+        parameters: {
+            type: "object",
+            properties: {
+                ids: {
+                    type: "array",
+                    items: { type: "string" },
+                    description: "Lista de IDs dos lançamentos a deletar"
+                },
+            },
+            required: ["ids"],
+        },
+    },
+    {
         name: "get_summary",
         description:
             "Retorna um resumo financeiro: totais de entradas, saídas, impostos, saldo líquido, quantidade de lançamentos atrasados, e saldo projetado (baseado em Agendados).",
@@ -208,6 +223,8 @@ export async function executeTool(name: string, args: Record<string, any>): Prom
                 return await handleUpdateTransaction(args);
             case "delete_transaction":
                 return await handleDeleteTransaction(args);
+            case "bulk_delete_transactions":
+                return await handleBulkDeleteTransactions(args);
             case "get_summary":
                 return await handleGetSummary(args);
             case "list_categories":
@@ -338,6 +355,16 @@ async function handleUpdateTransaction(args: any): Promise<string> {
 async function handleDeleteTransaction(args: any): Promise<string> {
     await prisma.transactions.delete({ where: { id: args.id } });
     return JSON.stringify({ success: true, message: "Lançamento deletado." });
+}
+
+async function handleBulkDeleteTransactions(args: any): Promise<string> {
+    if (!Array.isArray(args.ids) || args.ids.length === 0) {
+        return JSON.stringify({ success: false, error: "A lista de IDs não pode ser vazia." });
+    }
+    const result = await prisma.transactions.deleteMany({
+        where: { id: { in: args.ids } }
+    });
+    return JSON.stringify({ success: true, message: `${result.count} lançamentos foram deletados com sucesso.` });
 }
 
 async function handleGetSummary(args: any): Promise<string> {

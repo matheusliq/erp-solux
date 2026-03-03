@@ -64,7 +64,7 @@ function DatePickerField({
                 )}
             </button>
             {open && (
-                <div className="absolute top-full left-0 mt-1.5 z-[200] bg-[#0d0f12] border border-zinc-800 rounded-xl shadow-2xl p-3" style={{ width: "260px" }}>
+                <div className="absolute top-full left-0 sm:left-auto sm:right-0 mt-1.5 z-[200] max-w-[calc(100vw-2rem)] sm:max-w-none bg-[#0d0f12] border border-zinc-800 rounded-xl shadow-2xl p-3" style={{ width: "260px" }}>
                     <CalendarPicker
                         value={value}
                         onChange={v => { onChange(v); setOpen(false); }}

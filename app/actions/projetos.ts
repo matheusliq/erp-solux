@@ -19,8 +19,7 @@ export async function getProjects() {
                 contract_value: p.contract_value ? Number(p.contract_value) : null,
                 budget_solux_reserve: p.budget_solux_reserve ? Number(p.budget_solux_reserve) : null,
                 partners_split: p.partners_split || null,
-                created_at: p.created_at ? p.created_at.toISOString() : null,
-                updated_at: p.updated_at ? p.updated_at.toISOString() : null
+                created_at: p.created_at ? p.created_at.toISOString() : null
             }))
         };
     } catch (error) {
@@ -64,8 +63,7 @@ export async function createProject(data: {
                 contract_value: created.contract_value ? Number(created.contract_value) : null,
                 budget_solux_reserve: created.budget_solux_reserve ? Number(created.budget_solux_reserve) : null,
                 partners_split: created.partners_split || null,
-                created_at: created.created_at ? created.created_at.toISOString() : null,
-                updated_at: created.updated_at ? created.updated_at.toISOString() : null
+                created_at: created.created_at ? created.created_at.toISOString() : null
             }
         };
     } catch (error) {
@@ -110,8 +108,7 @@ export async function updateProject(id: string, data: {
                 contract_value: updated.contract_value ? Number(updated.contract_value) : null,
                 budget_solux_reserve: updated.budget_solux_reserve ? Number(updated.budget_solux_reserve) : null,
                 partners_split: updated.partners_split || null,
-                created_at: updated.created_at ? updated.created_at.toISOString() : null,
-                updated_at: updated.updated_at ? updated.updated_at.toISOString() : null
+                created_at: updated.created_at ? updated.created_at.toISOString() : null
             }
         };
     } catch (error) {
@@ -125,8 +122,11 @@ export async function deleteProject(id: string) {
         await prisma.projects.delete({ where: { id } });
         revalidatePath("/configuracoes");
         return { success: true };
-    } catch (error) {
+    } catch (error: any) {
         console.error("deleteProject error:", error);
+        if (error.code === 'P2003') {
+            return { success: false, error: "Não é possível excluir esta obra pois existem lançamentos financeiros vinculados a ela." };
+        }
         return { success: false, error: "Falha ao excluir projeto." };
     }
 }

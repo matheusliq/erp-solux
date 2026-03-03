@@ -267,66 +267,70 @@ export default function InboxPage() {
                     </div>
                 </div>
 
-                <div className="grid grid-cols-[2fr_1fr_1fr_1.5fr_1fr_2fr_80px] text-[10px] font-bold text-zinc-500 uppercase tracking-widest px-5 py-3 border-b border-zinc-800/60">
-                    <span>Nome</span><span>Valor</span><span>Vencimento</span>
-                    <span>Categoria</span><span>Status</span>
-                    <span>Fornecedor/Cliente</span><span />
-                </div>
+                <div className="overflow-x-auto">
+                    <div className="min-w-[800px]">
+                        <div className="grid grid-cols-[2fr_1fr_1fr_1.5fr_1fr_2fr_80px] text-[10px] font-bold text-zinc-500 uppercase tracking-widest px-5 py-3 border-b border-zinc-800/60">
+                            <span>Nome</span><span>Valor</span><span>Vencimento</span>
+                            <span>Categoria</span><span>Status</span>
+                            <span>Fornecedor/Cliente</span><span />
+                        </div>
 
-                <div className="flex-1 divide-y divide-zinc-800/50">
-                    {loading ? (
-                        <div className="flex items-center justify-center py-16 text-zinc-500 gap-2">
-                            <Loader2 size={18} className="animate-spin" /> Carregando lançamentos...
-                        </div>
-                    ) : filtered.length === 0 ? (
-                        <div className="flex flex-col items-center justify-center py-16 gap-2 text-zinc-600">
-                            <Info size={28} />
-                            <p className="text-sm">Nenhum lançamento encontrado no período.</p>
-                            <p className="text-xs text-zinc-700">{filterStartDate && filterEndDate ? `${fmtDate(filterStartDate)} até ${fmtDate(filterEndDate)}` : ""}</p>
-                        </div>
-                    ) : (
-                        filtered.map(t => {
-                            const isEntrada = t.type === "Entrada";
-                            const isImposto = !isEntrada && !!t.notes?.includes(TAX_MARKER);
-                            const bulletColor = isEntrada ? "#10b981" : isImposto ? "#f59e0b" : "#f43f5e";
-                            return (
-                                <div
-                                    key={t.id}
-                                    onClick={() => openEdit(t)}
-                                    className="grid grid-cols-[2fr_1fr_1fr_1.5fr_1fr_2fr_80px] items-center px-5 py-3.5 hover:bg-zinc-800/30 transition-colors group cursor-pointer"
-                                >
-                                    <div className="flex items-center gap-2.5">
-                                        <div className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 ${isEntrada ? "bg-emerald-500/15 text-emerald-400" : isImposto ? "bg-amber-500/15 text-amber-400" : "bg-rose-500/15 text-rose-400"}`}>
-                                            {isEntrada ? <ArrowUpCircle size={13} /> : isImposto ? <Receipt size={13} /> : <ArrowDownCircle size={13} />}
-                                        </div>
-                                        <span className="text-sm font-semibold text-zinc-200 truncate">{t.name}</span>
-                                    </div>
-                                    <span className={`text-sm font-bold ${isEntrada ? "text-emerald-400" : isImposto ? "text-amber-400" : "text-rose-400"}`}>
-                                        {isEntrada ? "+" : "-"} {formatBRL(t.amount)}
-                                    </span>
-                                    <span className="text-sm text-zinc-400">{t.due_date ? fmtDate(t.due_date) : "—"}</span>
-                                    <div className="flex items-center gap-1.5">
-                                        <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: bulletColor }} />
-                                        <span className="text-sm text-zinc-400 truncate">{t.categories?.name || "—"}</span>
-                                    </div>
-                                    <div>
-                                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${t.status === "Pago" ? "bg-emerald-500/15 text-emerald-400 border border-emerald-500/30" : t.status === "Atrasado" ? "bg-rose-500/15 text-rose-400 border border-rose-500/30" : "bg-zinc-500/15 text-zinc-400 border border-zinc-500/30"}`}>
-                                            {t.status}
-                                        </span>
-                                    </div>
-                                    <span className="text-sm text-zinc-400 truncate">{t.entities?.name || "—"}</span>
-                                    <div className="flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity justify-end" onClick={e => e.stopPropagation()}>
-                                        <button onClick={() => openEdit(t)} className="w-7 h-7 rounded-md bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 flex items-center justify-center text-zinc-400 hover:text-zinc-200 transition-all">
-                                            <Pencil size={12} />
-                                        </button>
-                                        <button onClick={() => { deleteTransaction(t.id).then(loadData); }} className="w-7 h-7 rounded-md bg-zinc-800 hover:bg-rose-900/60 border border-zinc-700 hover:border-rose-700 flex items-center justify-center text-zinc-400 hover:text-rose-400 transition-all">
-                                            <Trash2 size={12} />
-                                        </button>
-                                    </div>
+                        <div className="flex-1 divide-y divide-zinc-800/50">
+                            {loading ? (
+                                <div className="flex items-center justify-center py-16 text-zinc-500 gap-2">
+                                    <Loader2 size={18} className="animate-spin" /> Carregando lançamentos...
                                 </div>
-                            );
-                        })
-                    )}
+                            ) : filtered.length === 0 ? (
+                                <div className="flex flex-col items-center justify-center py-16 gap-2 text-zinc-600">
+                                    <Info size={28} />
+                                    <p className="text-sm">Nenhum lançamento encontrado no período.</p>
+                                    <p className="text-xs text-zinc-700">{filterStartDate && filterEndDate ? `${fmtDate(filterStartDate)} até ${fmtDate(filterEndDate)}` : ""}</p>
+                                </div>
+                            ) : (
+                                filtered.map(t => {
+                                    const isEntrada = t.type === "Entrada";
+                                    const isImposto = !isEntrada && !!t.notes?.includes(TAX_MARKER);
+                                    const bulletColor = isEntrada ? "#10b981" : isImposto ? "#f59e0b" : "#f43f5e";
+                                    return (
+                                        <div
+                                            key={t.id}
+                                            onClick={() => openEdit(t)}
+                                            className="grid grid-cols-[2fr_1fr_1fr_1.5fr_1fr_2fr_80px] items-center px-5 py-3.5 hover:bg-zinc-800/30 transition-colors group cursor-pointer"
+                                        >
+                                            <div className="flex items-center gap-2.5">
+                                                <div className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 ${isEntrada ? "bg-emerald-500/15 text-emerald-400" : isImposto ? "bg-amber-500/15 text-amber-400" : "bg-rose-500/15 text-rose-400"}`}>
+                                                    {isEntrada ? <ArrowUpCircle size={13} /> : isImposto ? <Receipt size={13} /> : <ArrowDownCircle size={13} />}
+                                                </div>
+                                                <span className="text-sm font-semibold text-zinc-200 truncate">{t.name}</span>
+                                            </div>
+                                            <span className={`text-sm font-bold ${isEntrada ? "text-emerald-400" : isImposto ? "text-amber-400" : "text-rose-400"}`}>
+                                                {isEntrada ? "+" : "-"} {formatBRL(t.amount)}
+                                            </span>
+                                            <span className="text-sm text-zinc-400">{t.due_date ? fmtDate(t.due_date) : "—"}</span>
+                                            <div className="flex items-center gap-1.5 min-w-0">
+                                                <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: bulletColor }} />
+                                                <span className="text-sm text-zinc-400 truncate break-all">{t.categories?.name || "—"}</span>
+                                            </div>
+                                            <div>
+                                                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${t.status === "Pago" ? "bg-emerald-500/15 text-emerald-400 border border-emerald-500/30" : t.status === "Atrasado" ? "bg-rose-500/15 text-rose-400 border border-rose-500/30" : "bg-zinc-500/15 text-zinc-400 border border-zinc-500/30"}`}>
+                                                    {t.status}
+                                                </span>
+                                            </div>
+                                            <span className="text-sm text-zinc-400 truncate break-all">{t.entities?.name || "—"}</span>
+                                            <div className="flex items-center gap-1.5 md:opacity-0 md:group-hover:opacity-100 transition-opacity justify-end" onClick={e => e.stopPropagation()}>
+                                                <button onClick={() => openEdit(t)} className="w-7 h-7 rounded-md bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 flex items-center justify-center text-zinc-400 hover:text-zinc-200 transition-all">
+                                                    <Pencil size={12} />
+                                                </button>
+                                                <button onClick={() => { deleteTransaction(t.id).then(loadData); }} className="w-7 h-7 rounded-md bg-zinc-800 hover:bg-rose-900/60 border border-zinc-700 hover:border-rose-700 flex items-center justify-center text-zinc-400 hover:text-rose-400 transition-all">
+                                                    <Trash2 size={12} />
+                                                </button>
+                                            </div>
+                                        </div>
+                                    );
+                                })
+                            )}
+                        </div>
+                    </div>
                 </div>
             </div>
 

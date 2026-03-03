@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import {
     Search, FileText, X, Loader2, Activity,
-    ArrowRight, ShieldCheck, Calendar, SlidersHorizontal, Copy, Check
+    ArrowRight, ShieldCheck, Calendar, SlidersHorizontal, Copy, Check, User
 } from "lucide-react";
 import { getAuditLogs } from "@/app/actions/auditoria";
 

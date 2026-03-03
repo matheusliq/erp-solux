@@ -80,10 +80,10 @@ const MAX_HISTORY = 20;
 function loadHistory() {
     try {
         const raw = localStorage.getItem(STORAGE_KEY);
-        return raw ? JSON.parse(raw) as { role: string; content: string; timestamp: string }[] : [];
+        return raw ? JSON.parse(raw) as { role: "user" | "assistant"; content: string; timestamp: string }[] : [];
     } catch { return []; }
 }
-function saveHistory(msgs: { role: string; content: string; timestamp: string }[]) {
+function saveHistory(msgs: { role: "user" | "assistant"; content: string; timestamp: string }[]) {
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify(msgs)); } catch { }
 }
 

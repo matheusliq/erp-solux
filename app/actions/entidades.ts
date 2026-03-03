@@ -53,8 +53,11 @@ export async function deleteEntity(id: string) {
         await prisma.entities.delete({ where: { id } });
         revalidatePath("/configuracoes");
         return { success: true };
-    } catch (error) {
+    } catch (error: any) {
         console.error("deleteEntity error:", error);
+        if (error.code === 'P2003') {
+            return { success: false, error: "Não é possível excluir este cliente/fornecedor pois existem lançamentos financeiros vinculados a ele." };
+        }
         return { success: false, error: "Falha ao excluir entidade." };
     }
 }
