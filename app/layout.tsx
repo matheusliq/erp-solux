@@ -18,7 +18,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="pt-BR" className="dark">
+    <html lang="pt-BR" className="dark" suppressHydrationWarning>
       <body className={`${inter.className} bg-background text-foreground flex h-screen overflow-hidden`}>
         <Providers>
           {/* O nosso novo Menu Lateral */}

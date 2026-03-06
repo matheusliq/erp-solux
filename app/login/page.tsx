@@ -2,12 +2,10 @@
 
 import { useState } from "react";
 import { signIn } from "next-auth/react";
-import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { Loader2, Eye, EyeOff } from "lucide-react";
 
 export default function LoginPage() {
-    const router = useRouter();
     const [username, setUsername] = useState("");
     const [password, setPassword] = useState("");
     const [error, setError] = useState("");
@@ -29,8 +27,9 @@ export default function LoginPage() {
             setError("Usuário ou senha inválidos.");
             setLoading(false);
         } else {
-            router.push("/inbox");
-            router.refresh(); // Force session update
+            // Force a hard navigation to guarantee the session and cookies are fully initialized
+            // and Next.js middleware gets the new session cookie.
+            window.location.href = "/inbox";
         }
     };
 
