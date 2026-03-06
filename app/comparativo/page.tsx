@@ -155,7 +155,7 @@ export default function ComparativoPage() {
     };
 
     return (
-        <div className="p-8 h-full bg-zinc-950 text-white font-sans flex flex-col gap-5 overflow-y-auto">
+        <div className="p-8 h-full bg-background text-white font-sans flex flex-col gap-5 overflow-y-auto">
             {/* Header */}
             <div>
                 <h1 className="text-2xl font-bold tracking-tight">

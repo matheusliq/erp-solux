@@ -149,7 +149,7 @@ export default function PlanejadoPage() {
     };
 
     return (
-        <div className="p-4 md:p-8 min-h-full bg-zinc-950 text-white font-sans flex flex-col gap-5">
+        <div className="p-4 md:p-8 min-h-full bg-background text-white font-sans flex flex-col gap-5">
             {/* Header */}
             <div className="flex justify-between items-start">
                 <div>
@@ -325,7 +325,7 @@ export default function PlanejadoPage() {
 
             {/* Modal */}
             <Dialog open={modalOpen} onOpenChange={setModalOpen}>
-                <DialogContent className="bg-zinc-950 border border-zinc-800 text-white max-w-xl max-h-[85vh] overflow-y-auto p-0 rounded-xl shadow-2xl">
+                <DialogContent className="bg-background border border-zinc-800 text-white max-w-xl max-h-[85vh] overflow-y-auto p-0 rounded-xl shadow-2xl">
                     <DialogHeader className="p-6 border-b border-zinc-800 bg-zinc-900/50 sticky top-0 z-10 backdrop-blur-sm">
                         <DialogTitle className="text-xl font-bold">{editId ? "Editar Planejamento" : "Novo Planejamento"}</DialogTitle>
                     </DialogHeader>

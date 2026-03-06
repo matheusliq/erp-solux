@@ -5,6 +5,7 @@ import {
     Download, Plus, Filter, X, Search,
     ArrowUpCircle, ArrowDownCircle, Receipt, Wallet,
     Pencil, Trash2, Info, CalendarDays, Loader2,
+    Paperclip
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -12,6 +13,7 @@ import {
 } from "@/app/actions/transactions";
 import { getCategories } from "@/app/actions/categorias";
 import { getProjects } from "@/app/actions/projetos";
+import { getEntities } from "@/app/actions/entidades";
 
 // Lazy-loaded modals — only bundled/parsed when first opened
 const TransactionModal = lazy(() => import("@/components/TransactionModal"));
@@ -31,9 +33,10 @@ interface Transaction {
     type: string;
     status: string;
     due_date: string;
-    notes: string | null;
     categories: { id: string; name: string; color: string; type: string } | null;
     entities: { name: string } | null;
+    notes: string | null;
+    receipt_url: string | null;
 }
 interface Category { id: string; name: string; color: string; type: string }
 
@@ -51,7 +54,7 @@ function StatCard({ label, value, count, color, icon: Icon, iconColor }: {
     color: string; icon: React.ElementType; iconColor: string;
 }) {
     return (
-        <div className="relative rounded-xl border border-zinc-800 bg-zinc-900/60 p-5 flex flex-col gap-3 overflow-hidden">
+        <div className="relative rounded-xl border border-zinc-800 bg-card/60 p-5 flex flex-col gap-3 overflow-hidden">
             <div className={`absolute -top-6 -right-6 w-24 h-24 rounded-full blur-2xl opacity-20 ${iconColor.replace("text-", "bg-")}`} />
             <div className="flex justify-between items-start">
                 <p className="text-xs font-bold text-zinc-400 uppercase tracking-widest">{label}</p>
@@ -75,6 +78,7 @@ export default function InboxPage() {
     const [transactions, setTransactions] = useState<Transaction[]>([]);
     const [categories, setCategories] = useState<Category[]>([]);
     const [projects, setProjects] = useState<any[]>([]);
+    const [entities, setEntities] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
 
     // ── Filters — lazy initialization to avoid stale closure ─────────────────
@@ -94,14 +98,16 @@ export default function InboxPage() {
     const loadData = useCallback(async () => {
         setLoading(true);
         try {
-            const [txRes, catRes, projRes] = await Promise.all([
+            const [txRes, catRes, projRes, entRes] = await Promise.all([
                 getRealTransactions(filterStartDate || undefined, filterEndDate || undefined),
                 getCategories(),
                 getProjects(),
+                getEntities(),
             ]);
             if (txRes.success) setTransactions((txRes.data || []) as Transaction[]);
             if (catRes.success) setCategories((catRes.data || []) as Category[]);
             if (projRes.success) setProjects(projRes.data || []);
+            if (entRes.success) setEntities(entRes.data || []);
         } catch (err) {
             console.error("loadData error:", err);
         } finally {
@@ -164,7 +170,7 @@ export default function InboxPage() {
     const openNew = () => { setEditTx(null); setTxModalOpen(true); };
 
     return (
-        <div className="p-4 md:p-8 bg-zinc-950 text-white min-h-full font-sans flex flex-col gap-5">
+        <div className="p-4 md:p-8 bg-background text-foreground min-h-full font-sans flex flex-col gap-5">
             {/* ── Header ─────────────────────────────────────────────────── */}
             <div className="flex justify-between items-start">
                 <div>
@@ -174,14 +180,14 @@ export default function InboxPage() {
                     <p className="text-xs text-zinc-500 mt-0.5">Gerencie seus lançamentos financeiros</p>
                 </div>
                 <div className="flex items-center gap-2">
-                    <Button onClick={() => setIagoOpen(true)} variant="outline" className="border-zinc-700 bg-zinc-900 hover:bg-zinc-800 text-zinc-300 text-xs font-semibold gap-2 h-9">
-                        <span className="w-5 h-5 rounded-full bg-gradient-to-br from-blue-500 to-blue-800 flex items-center justify-center text-[9px] font-black text-white shrink-0">I</span>
+                    <Button onClick={() => setIagoOpen(true)} variant="outline" className="border-zinc-700 bg-card hover:bg-zinc-800 text-zinc-300 text-xs font-semibold gap-2 h-9">
+                        <span className="w-5 h-5 rounded-full bg-gradient-to-br from-blue-500 to-blue-800 flex items-center justify-center text-[9px] font-black text-foreground shrink-0">I</span>
                         Assistente IA
                     </Button>
-                    <Button variant="outline" className="border-zinc-700 bg-zinc-900 hover:bg-zinc-800 text-zinc-300 text-xs font-semibold gap-2 h-9">
+                    <Button variant="outline" className="border-zinc-700 bg-card hover:bg-zinc-800 text-zinc-300 text-xs font-semibold gap-2 h-9">
                         <Download size={15} /> Exportar
                     </Button>
-                    <Button onClick={openNew} className="bg-[#0056b3] hover:bg-[#004494] text-white text-xs font-bold uppercase tracking-wider gap-2 h-9 px-5 shadow-[0_0_20px_rgba(0,86,179,0.25)]">
+                    <Button onClick={openNew} className="bg-[#0056b3] hover:bg-[#004494] text-foreground text-xs font-bold uppercase tracking-wider gap-2 h-9 px-5 shadow-[0_0_20px_rgba(0,86,179,0.25)]">
                         <Plus size={15} /> Novo Lançamento
                     </Button>
                 </div>
@@ -195,7 +201,7 @@ export default function InboxPage() {
             </div>
 
             {/* ── Saldo ──────────────────────────────────────────────────── */}
-            <div className="rounded-xl border border-zinc-800 bg-zinc-900/60 p-5 flex items-center justify-between">
+            <div className="rounded-xl border border-zinc-800 bg-card/60 p-5 flex items-center justify-between">
                 <div className="flex items-center gap-3">
                     <Wallet size={18} className="text-blue-400" />
                     <div>
@@ -209,11 +215,11 @@ export default function InboxPage() {
             </div>
 
             {/* ── Filters ────────────────────────────────────────────────── */}
-            <div className="rounded-xl border border-zinc-800 bg-zinc-900/40 p-4 space-y-3">
+            <div className="rounded-xl border border-zinc-800 bg-card/40 p-4 space-y-3">
                 <div className="flex items-center gap-2 text-xs text-zinc-400">
                     <Filter size={13} />
                     <span className="font-semibold">Filtros</span>
-                    {activeFilters > 0 && <span className="bg-blue-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">{activeFilters} ativo{activeFilters > 1 ? "s" : ""}</span>}
+                    {activeFilters > 0 && <span className="bg-blue-600 text-foreground text-[10px] font-bold px-2 py-0.5 rounded-full">{activeFilters} ativo{activeFilters > 1 ? "s" : ""}</span>}
                     {activeFilters > 0 && (
                         <button onClick={clearFilters} className="ml-1 flex items-center gap-1 text-zinc-500 hover:text-zinc-200 transition-colors">
                             <X size={11} /> Limpar
@@ -259,7 +265,7 @@ export default function InboxPage() {
             </div>
 
             {/* ── Table ──────────────────────────────────────────────────── */}
-            <div className="rounded-xl border border-zinc-800 bg-zinc-900/30 overflow-hidden flex flex-col mt-2">
+            <div className="rounded-xl border border-zinc-800 bg-card/30 overflow-hidden flex flex-col mt-2">
                 <div className="p-3 border-b border-zinc-800">
                     <div className="relative">
                         <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" />
@@ -302,6 +308,11 @@ export default function InboxPage() {
                                                     {isEntrada ? <ArrowUpCircle size={13} /> : isImposto ? <Receipt size={13} /> : <ArrowDownCircle size={13} />}
                                                 </div>
                                                 <span className="text-sm font-semibold text-zinc-200 truncate">{t.name}</span>
+                                                {t.receipt_url && (
+                                                    <div className="w-5 h-5 rounded flex items-center justify-center bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 shrink-0" title="Comprovante Anexado">
+                                                        <Paperclip size={10} />
+                                                    </div>
+                                                )}
                                             </div>
                                             <span className={`text-sm font-bold ${isEntrada ? "text-emerald-400" : isImposto ? "text-amber-400" : "text-rose-400"}`}>
                                                 {isEntrada ? "+" : "-"} {formatBRL(t.amount)}
@@ -336,7 +347,7 @@ export default function InboxPage() {
 
             {/* Lazy modals — only mounted when open */}
             <Suspense fallback={<ModalFallback />}>
-                <TransactionModal open={txModalOpen} onClose={() => { setTxModalOpen(false); setEditTx(null); }} onSaved={loadData} categories={categories} projects={projects} editTx={editTx as any} mode="real" />
+                <TransactionModal open={txModalOpen} onClose={() => { setTxModalOpen(false); setEditTx(null); }} onSaved={loadData} categories={categories} projects={projects} entities={entities} editTx={editTx as any} mode="real" />
             </Suspense>
             <Suspense fallback={null}>
                 <IagoModal open={iagoOpen} onClose={() => setIagoOpen(false)} context={iagoContext} pageTitle="Inbox Financeiro" />

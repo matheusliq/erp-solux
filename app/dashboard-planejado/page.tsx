@@ -252,7 +252,7 @@ export default function DashboardPlanejadoPage() {
     );
 
     return (
-        <div className="p-4 md:p-8 bg-zinc-950 text-white min-h-full font-sans">
+        <div className="p-4 md:p-8 bg-background text-white min-h-full font-sans">
             {/* Header */}
             <div className="flex items-start justify-between mb-8">
                 <div>
@@ -385,7 +385,7 @@ export default function DashboardPlanejadoPage() {
                                 return (
                                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                                         {Object.entries(totals).map(([name, value]) => (
-                                            <div key={name} className="bg-zinc-950/50 border border-zinc-800 rounded-xl p-4 text-center">
+                                            <div key={name} className="bg-background/50 border border-zinc-800 rounded-xl p-4 text-center">
                                                 <div className="w-9 h-9 rounded-full bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center mx-auto mb-2">
                                                     <span className="text-indigo-300 text-sm font-black">{name[0]}</span>
                                                 </div>
@@ -402,7 +402,7 @@ export default function DashboardPlanejadoPage() {
                     {/* Modal: Distribuição por Obra */}
                     {showSocietarioModal && (
                         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={() => setShowSocietarioModal(false)}>
-                            <div className="relative bg-zinc-950 border border-zinc-800 rounded-2xl shadow-2xl max-w-2xl w-full mx-4 max-h-[80vh] flex flex-col" onClick={e => e.stopPropagation()}>
+                            <div className="relative bg-background border border-zinc-800 rounded-2xl shadow-2xl max-w-2xl w-full mx-4 max-h-[80vh] flex flex-col" onClick={e => e.stopPropagation()}>
                                 <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-800">
                                     <div>
                                         <h3 className="font-bold text-white flex items-center gap-2"><PieChart size={16} className="text-indigo-400" /> Detalhamento por Obra</h3>

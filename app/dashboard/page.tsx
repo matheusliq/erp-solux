@@ -4,11 +4,12 @@ import { useState, useEffect, useCallback } from "react";
 import {
     TrendingUp, TrendingDown, DollarSign, AlertTriangle,
     ArrowUpCircle, ArrowDownCircle, Receipt, CalendarDays, Loader2,
-    ChevronRight, X
+    ChevronRight, X, Maximize2, ExternalLink
 } from "lucide-react";
 import { getTransactions } from "@/app/actions/transactions";
 import { getProjects } from "@/app/actions/projetos";
 import { PieChart, Landmark } from "lucide-react";
+import ReembolsoModal from "@/components/ReembolsoModal";
 
 const formatBRL = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
@@ -21,7 +22,7 @@ interface Tx {
 }
 
 // ── Simple Bar Chart SVG (no library) ──────────────────────────────────────
-function BarChart({ data, height = 160 }: { data: { label: string; value: number; color: string }[]; height?: number }) {
+function BarChart({ data, height = 160, hideValues = false, isModal = false }: { data: { label: string; value: number; color: string }[]; height?: number; hideValues?: boolean; isModal?: boolean }) {
     if (!data.length || data.every(d => d.value === 0)) {
         return (
             <div className="flex items-center justify-center h-full text-zinc-600 text-sm">
@@ -32,21 +33,23 @@ function BarChart({ data, height = 160 }: { data: { label: string; value: number
     const max = Math.max(...data.map(d => d.value));
     const w = 100 / data.length;
     return (
-        <svg viewBox={`0 0 100 ${height}`} className="w-full" style={{ height }}>
+        <svg viewBox={`0 0 100 ${height}`} className="w-full h-full min-h-[160px]" preserveAspectRatio="none">
             {data.map((d, i) => {
-                const barH = max === 0 ? 0 : (d.value / max) * (height - 24);
+                const barH = max === 0 ? 0 : (d.value / max) * (height - (isModal ? 30 : 24));
                 const x = i * w + w * 0.2;
                 const bw = w * 0.6;
-                const y = height - barH - 20;
+                const y = height - barH - (isModal ? 25 : 20);
                 return (
                     <g key={i}>
-                        <rect x={x} y={y} width={bw} height={barH} rx="2" fill={d.color} fillOpacity="0.85" />
-                        <text x={x + bw / 2} y={height - 6} textAnchor="middle" fontSize="5" fill="#71717a" fontFamily="sans-serif">
+                        <rect x={x} y={y} width={bw} height={barH} rx="2" fill={d.color} fillOpacity="0.85" className="transition-all duration-300 hover:fill-opacity-100 cursor-pointer" />
+                        <text x={x + bw / 2} y={height - (isModal ? 10 : 6)} textAnchor="middle" fontSize={isModal ? "8" : "5"} fill="#71717a" fontFamily="sans-serif">
                             {d.label}
                         </text>
-                        <text x={x + bw / 2} y={y - 3} textAnchor="middle" fontSize="4.5" fill="#a1a1aa" fontFamily="sans-serif">
-                            {d.value >= 1000 ? `${(d.value / 1000).toFixed(0)}k` : d.value.toFixed(0)}
-                        </text>
+                        {!hideValues && (
+                            <text x={x + bw / 2} y={y - 3} textAnchor="middle" fontSize={isModal ? "6" : "4.5"} fill="#a1a1aa" fontFamily="sans-serif" className="font-bold hidden md:block">
+                                {d.value >= 1000 ? `${(d.value / 1000).toFixed(1)}k` : d.value.toFixed(0)}
+                            </text>
+                        )}
                     </g>
                 );
             })}
@@ -55,9 +58,10 @@ function BarChart({ data, height = 160 }: { data: { label: string; value: number
 }
 
 // ── Simple Line Chart SVG ───────────────────────────────────────────────────
-function LineChart({ data, height = 160 }: {
+function LineChart({ data, height = 160, isModal = false }: {
     data: { label: string; entradas: number; saidas: number }[];
     height?: number;
+    isModal?: boolean;
 }) {
     if (!data.length || data.every(d => d.entradas === 0 && d.saidas === 0)) {
         return (
@@ -68,7 +72,7 @@ function LineChart({ data, height = 160 }: {
     }
     const max = Math.max(...data.flatMap(d => [d.entradas, d.saidas]), 1);
     const w = 100;
-    const h = height - 20;
+    const h = height - (isModal ? 30 : 20);
     const step = w / Math.max(data.length - 1, 1);
 
     const toPoint = (i: number, v: number) => {
@@ -81,24 +85,24 @@ function LineChart({ data, height = 160 }: {
     const saiPath = data.map((d, i) => (i === 0 ? "M" : "L") + toPoint(i, d.saidas)).join(" ");
 
     return (
-        <svg viewBox={`0 0 100 ${height}`} className="w-full" style={{ height }}>
+        <svg viewBox={`0 0 100 ${height}`} className="w-full h-full min-h-[160px]" preserveAspectRatio="none">
             {/* Grid lines */}
             {[0, 0.25, 0.5, 0.75, 1].map((f, i) => (
                 <line key={i} x1="0" y1={h - f * (h - 16)} x2="100" y2={h - f * (h - 16)}
                     stroke="#27272a" strokeWidth="0.5" />
             ))}
-            <path d={entPath} fill="none" stroke="#10b981" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
-            <path d={saiPath} fill="none" stroke="#f43f5e" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
+            <path d={entPath} fill="none" stroke="#10b981" strokeWidth={isModal ? "2" : "1.2"} strokeLinecap="round" strokeLinejoin="round" />
+            <path d={saiPath} fill="none" stroke="#f43f5e" strokeWidth={isModal ? "2" : "1.2"} strokeLinecap="round" strokeLinejoin="round" />
             {data.map((d, i) => (
-                <text key={i} x={i * step} y={height - 4} textAnchor="middle" fontSize="4.5" fill="#71717a" fontFamily="sans-serif">
+                <text key={i} x={i * step} y={height - (isModal ? 10 : 4)} textAnchor="middle" fontSize={isModal ? "6" : "4.5"} fill="#71717a" fontFamily="sans-serif">
                     {d.label}
                 </text>
             ))}
             {/* Legend */}
-            <circle cx="5" cy="8" r="2" fill="#10b981" />
-            <text x="9" y="11" fontSize="4" fill="#10b981" fontFamily="sans-serif">Entradas</text>
-            <circle cx="35" cy="8" r="2" fill="#f43f5e" />
-            <text x="39" y="11" fontSize="4" fill="#f43f5e" fontFamily="sans-serif">Saídas</text>
+            <circle cx="5" cy={isModal ? "10" : "8"} r={isModal ? "3" : "2"} fill="#10b981" />
+            <text x="10" y={isModal ? "12" : "11"} fontSize={isModal ? "6" : "4"} fill="#10b981" fontFamily="sans-serif">Entradas</text>
+            <circle cx="35" cy={isModal ? "10" : "8"} r={isModal ? "3" : "2"} fill="#f43f5e" />
+            <text x="40" y={isModal ? "12" : "11"} fontSize={isModal ? "6" : "4"} fill="#f43f5e" fontFamily="sans-serif">Saídas</text>
         </svg>
     );
 }
@@ -121,6 +125,8 @@ export default function DashboardPage() {
     const [startDate, setStartDate] = useState("");
     const [endDate, setEndDate] = useState("");
     const [showPeriod, setShowPeriod] = useState(false);
+    const [showReembolsoModal, setShowReembolsoModal] = useState(false);
+    const [activeChartModal, setActiveChartModal] = useState<"entradas" | "saidas" | "fluxo" | null>(null);
 
     const loadData = useCallback(async () => {
         setLoading(true);
@@ -253,7 +259,7 @@ export default function DashboardPage() {
     );
 
     return (
-        <div className="p-4 md:p-8 bg-zinc-950 text-white min-h-full font-sans">
+        <div className="p-4 md:p-8 bg-background text-white min-h-full font-sans">
             {/* Header */}
             <div className="flex items-start justify-between mb-8">
                 <div>
@@ -335,13 +341,17 @@ export default function DashboardPage() {
                         </div>
 
                         {/* Reembolsos */}
-                        <div className="lg:col-span-1 border border-indigo-500/30 bg-indigo-500/5 rounded-xl p-5 overflow-hidden relative flex flex-col justify-between">
-                            <div className="absolute -top-8 -right-8 w-32 h-32 rounded-full blur-3xl opacity-20 bg-indigo-500" />
+                        <div
+                            className="lg:col-span-1 border border-indigo-500/30 bg-indigo-500/5 hover:bg-indigo-500/10 transition-colors rounded-xl p-5 overflow-hidden relative flex flex-col justify-between cursor-pointer group"
+                            onClick={() => setShowReembolsoModal(true)}
+                        >
+                            <div className="absolute -top-8 -right-8 w-32 h-32 rounded-full blur-3xl opacity-20 bg-indigo-500 group-hover:opacity-30 transition-opacity" />
+                            <ExternalLink size={16} className="absolute top-4 right-4 text-indigo-400 opacity-0 group-hover:opacity-100 transition-opacity" />
                             <div>
                                 <h3 className="text-lg font-bold text-indigo-400 flex items-center gap-2">
                                     <Receipt size={18} /> Reembolsos Pendentes
                                 </h3>
-                                <p className="text-[10px] text-zinc-400 uppercase tracking-widest mt-1">Valores pagos por sócios</p>
+                                <p className="text-[10px] text-zinc-400 uppercase tracking-widest mt-1">Valores a receber por sócios</p>
                             </div>
 
                             {totalReembolsos === 0 ? (
@@ -389,7 +399,7 @@ export default function DashboardPage() {
                                 return (
                                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                                         {Object.entries(totals).map(([name, value]) => (
-                                            <div key={name} className="bg-zinc-950/50 border border-zinc-800 rounded-xl p-4 text-center">
+                                            <div key={name} className="bg-background/50 border border-zinc-800 rounded-xl p-4 text-center">
                                                 <div className="w-9 h-9 rounded-full bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center mx-auto mb-2">
                                                     <span className="text-indigo-300 text-sm font-black">{name[0]}</span>
                                                 </div>
@@ -408,7 +418,7 @@ export default function DashboardPage() {
                     {/* Modal: Distribuição por Obra */}
                     {showSocietarioModal && (
                         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={() => setShowSocietarioModal(false)}>
-                            <div className="relative bg-zinc-950 border border-zinc-800 rounded-2xl shadow-2xl max-w-2xl w-full mx-4 max-h-[80vh] flex flex-col" onClick={e => e.stopPropagation()}>
+                            <div className="relative bg-background border border-zinc-800 rounded-2xl shadow-2xl max-w-2xl w-full mx-4 max-h-[80vh] flex flex-col" onClick={e => e.stopPropagation()}>
                                 <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-800">
                                     <div>
                                         <h3 className="font-bold text-white flex items-center gap-2"><PieChart size={16} className="text-indigo-400" /> Detalhamento por Obra</h3>
@@ -460,22 +470,40 @@ export default function DashboardPage() {
                     {/* Charts */}
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
                         {/* Entradas por mês */}
-                        <div className="bg-zinc-900/40 border border-zinc-800 rounded-xl p-5">
+                        <div
+                            className="bg-zinc-900/40 border border-zinc-800 rounded-xl p-5 hover:bg-zinc-900/60 transition-colors cursor-zoom-in group relative"
+                            onClick={() => setActiveChartModal("entradas")}
+                        >
+                            <Maximize2 size={16} className="absolute top-4 right-4 text-zinc-600 opacity-0 group-hover:opacity-100 transition-opacity" />
                             <h3 className="text-sm font-bold text-zinc-200 mb-4">Entradas por Mês</h3>
-                            <BarChart data={barDataEntradas} height={160} />
+                            <div className="h-[160px]">
+                                <BarChart data={barDataEntradas} height={160} />
+                            </div>
                         </div>
                         {/* Cash Flow line */}
-                        <div className="bg-zinc-900/40 border border-zinc-800 rounded-xl p-5">
+                        <div
+                            className="bg-zinc-900/40 border border-zinc-800 rounded-xl p-5 hover:bg-zinc-900/60 transition-colors cursor-zoom-in group relative"
+                            onClick={() => setActiveChartModal("fluxo")}
+                        >
+                            <Maximize2 size={16} className="absolute top-4 right-4 text-zinc-600 opacity-0 group-hover:opacity-100 transition-opacity" />
                             <h3 className="text-sm font-bold text-zinc-200 mb-4">Fluxo de Caixa — Entradas vs Saídas</h3>
-                            <LineChart data={lineData} height={160} />
+                            <div className="h-[160px]">
+                                <LineChart data={lineData} height={160} />
+                            </div>
                         </div>
                     </div>
 
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                         {/* Saídas por mês */}
-                        <div className="bg-zinc-900/40 border border-zinc-800 rounded-xl p-5">
+                        <div
+                            className="bg-zinc-900/40 border border-zinc-800 rounded-xl p-5 hover:bg-zinc-900/60 transition-colors cursor-zoom-in group relative"
+                            onClick={() => setActiveChartModal("saidas")}
+                        >
+                            <Maximize2 size={16} className="absolute top-4 right-4 text-zinc-600 opacity-0 group-hover:opacity-100 transition-opacity" />
                             <h3 className="text-sm font-bold text-zinc-200 mb-4">Comparação Mensal (Saídas)</h3>
-                            <BarChart data={barDataSaidas} height={140} />
+                            <div className="h-[140px]">
+                                <BarChart data={barDataSaidas} height={140} hideValues />
+                            </div>
                         </div>
 
                         {/* Top categorias */}
@@ -508,6 +536,51 @@ export default function DashboardPage() {
                     </div>
                 </>
             )}
+
+            {/* Modal de Gráficos (Tela Cheia) */}
+            {activeChartModal && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-md p-4 lg:p-12 animate-in fade-in duration-200" onClick={() => setActiveChartModal(null)}>
+                    <div className="bg-background border border-zinc-800 rounded-2xl w-full max-w-6xl h-[70vh] flex flex-col shadow-2xl overflow-hidden" onClick={e => e.stopPropagation()}>
+                        <div className="flex items-center justify-between p-6 border-b border-zinc-800 bg-zinc-900/40">
+                            <div>
+                                <h2 className="text-xl font-bold text-white">
+                                    {activeChartModal === "entradas" && "Gráfico Ampliado: Entradas Mensais"}
+                                    {activeChartModal === "saidas" && "Gráfico Ampliado: Saídas Mensais"}
+                                    {activeChartModal === "fluxo" && "Gráfico Ampliado: Fluxo de Caixa (Comparativo)"}
+                                </h2>
+                                <p className="text-sm text-zinc-400 mt-1">Visão detalhada com referências completas</p>
+                            </div>
+                            <button onClick={() => setActiveChartModal(null)} className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-zinc-800 text-zinc-400 hover:text-white transition-colors">
+                                <X size={24} />
+                            </button>
+                        </div>
+                        <div className="flex-1 p-8 bg-background overflow-hidden flex flex-col justify-center">
+                            {activeChartModal === "entradas" && (
+                                <div className="w-full h-[50vh] min-h-[300px]">
+                                    <BarChart data={barDataEntradas} height={300} isModal />
+                                </div>
+                            )}
+                            {activeChartModal === "saidas" && (
+                                <div className="w-full h-[50vh] min-h-[300px]">
+                                    <BarChart data={barDataSaidas} height={300} isModal />
+                                </div>
+                            )}
+                            {activeChartModal === "fluxo" && (
+                                <div className="w-full h-[50vh] min-h-[300px]">
+                                    <LineChart data={lineData} height={300} isModal />
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Modal de Detalhamento Reembolso por Sócio */}
+            <ReembolsoModal
+                open={showReembolsoModal}
+                onClose={() => setShowReembolsoModal(false)}
+                reembolsos={saidas.filter(t => t.notes?.includes("[REEMBOLSO:")) as any}
+            />
         </div>
     );
 }

@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, lazy, Suspense } from "react";
 import { DragDropContext, Droppable, Draggable, DropResult } from "@hello-pangea/dnd";
 import {
-    Plus, ChevronDown, Trash2, Receipt, Loader2, Pencil
+    Plus, ChevronDown, Trash2, Receipt, Loader2, Pencil, Paperclip
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -12,6 +12,7 @@ import {
 } from "@/app/actions/transactions";
 import { getCategories } from "@/app/actions/categorias";
 import { getProjects } from "@/app/actions/projetos";
+import { getEntities } from "@/app/actions/entidades";
 
 // Lazy modals — only bundled/parsed when first opened
 const TransactionModal = lazy(() => import("@/components/TransactionModal"));
@@ -33,6 +34,7 @@ interface Transaction {
     categories: { id: string; name: string; color: string; type: string } | null;
     entities: { name: string } | null;
     notes: string | null;
+    receipt_url: string | null;
 }
 interface Category { id: string; name: string; color: string; type: string }
 
@@ -55,6 +57,7 @@ export default function KanbanPage() {
     const [transactions, setTransactions] = useState<Transaction[]>([]);
     const [categories, setCategories] = useState<Category[]>([]);
     const [projects, setProjects] = useState<any[]>([]);
+    const [entities, setEntities] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [modalOpen, setModalOpen] = useState(false);
     const [editTx, setEditTx] = useState<Transaction | null>(null);
@@ -63,14 +66,16 @@ export default function KanbanPage() {
 
     const loadData = useCallback(async () => {
         setLoading(true);
-        const [txRes, catRes, projRes] = await Promise.all([
+        const [txRes, catRes, projRes, entRes] = await Promise.all([
             mode === "real" ? getRealTransactions() : getPlannedTransactions(),
             getCategories(),
             getProjects(),
+            getEntities()
         ]);
         if (txRes.success) setTransactions((txRes.data || []) as Transaction[]);
         if (catRes.success) setCategories((catRes.data || []) as Category[]);
         if (projRes.success) setProjects(projRes.data || []);
+        if (entRes.success) setEntities(entRes.data || []);
         setLoading(false);
     }, [mode]);
 
@@ -207,7 +212,7 @@ export default function KanbanPage() {
     };
 
     return (
-        <div className="p-4 md:p-8 min-h-full bg-zinc-950 text-white font-sans flex flex-col">
+        <div className="p-4 md:p-8 min-h-full bg-background text-foreground font-sans flex flex-col">
             {/* Header */}
             <div className="flex flex-wrap justify-between items-start mb-6 gap-3">
                 <div>
@@ -219,25 +224,25 @@ export default function KanbanPage() {
                 <div className="flex items-center gap-2">
                     {/* Real / Planejado dropdown */}
                     <div className="relative">
-                        <button onClick={() => setDropdownOpen(!dropdownOpen)} className="flex items-center gap-2 h-9 px-4 rounded-lg border border-zinc-700 bg-zinc-900 text-sm font-semibold text-zinc-300 hover:border-blue-500 transition-colors">
+                        <button onClick={() => setDropdownOpen(!dropdownOpen)} className="flex items-center gap-2 h-9 px-4 rounded-lg border border-zinc-700 bg-card text-sm font-semibold text-zinc-300 hover:border-blue-500 transition-colors">
                             {mode === "real" ? "Real" : "Planejado"}
                             <ChevronDown size={14} className={`transition-transform ${dropdownOpen ? "rotate-180" : ""}`} />
                         </button>
                         {dropdownOpen && (
-                            <div className="absolute right-0 top-11 z-50 bg-zinc-900 border border-zinc-700 rounded-lg overflow-hidden shadow-xl w-36">
+                            <div className="absolute right-0 top-11 z-50 bg-card border border-zinc-700 rounded-lg overflow-hidden shadow-xl w-36">
                                 {(["real", "planejado"] as const).map((m) => (
-                                    <button key={m} onClick={() => { setMode(m); setDropdownOpen(false); }} className={`w-full text-left px-4 py-2.5 text-sm transition-colors ${mode === m ? "bg-blue-600 text-white" : "text-zinc-300 hover:bg-zinc-800"}`}>
+                                    <button key={m} onClick={() => { setMode(m); setDropdownOpen(false); }} className={`w-full text-left px-4 py-2.5 text-sm transition-colors ${mode === m ? "bg-blue-600 text-foreground" : "text-zinc-300 hover:bg-zinc-800"}`}>
                                         {m === "real" ? "Real" : "Planejado"}
                                     </button>
                                 ))}
                             </div>
                         )}
                     </div>
-                    <button onClick={() => setIagoOpen(true)} className="flex items-center gap-2 h-9 px-4 rounded-lg border border-zinc-700 bg-zinc-900 text-sm font-semibold text-zinc-300 hover:border-blue-500/50 transition-colors">
-                        <span className="w-5 h-5 rounded-full bg-gradient-to-br from-blue-500 to-blue-800 flex items-center justify-center text-[9px] font-black text-white shrink-0">I</span>
+                    <button onClick={() => setIagoOpen(true)} className="flex items-center gap-2 h-9 px-4 rounded-lg border border-zinc-700 bg-card text-sm font-semibold text-zinc-300 hover:border-blue-500/50 transition-colors">
+                        <span className="w-5 h-5 rounded-full bg-gradient-to-br from-blue-500 to-blue-800 flex items-center justify-center text-[9px] font-black text-foreground shrink-0">I</span>
                         Assistente IA
                     </button>
-                    <Button onClick={openNew} className="bg-[#0056b3] hover:bg-[#004494] text-white text-xs font-bold uppercase tracking-wider gap-2 h-9 px-5 shadow-[0_0_20px_rgba(0,86,179,0.25)]">
+                    <Button onClick={openNew} className="bg-[#0056b3] hover:bg-[#004494] text-foreground text-xs font-bold uppercase tracking-wider gap-2 h-9 px-5 shadow-[0_0_20px_rgba(0,86,179,0.25)]">
                         <Plus size={15} /> Novo
                     </Button>
                 </div>
@@ -257,8 +262,8 @@ export default function KanbanPage() {
                             return (
                                 <div key={mk} className="w-72 shrink-0 flex flex-col">
                                     {/* Column header */}
-                                    <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 mb-3">
-                                        <h2 className="text-sm font-bold text-white mb-3 capitalize">{getMonthLabel(mk)}</h2>
+                                    <div className="bg-card border border-zinc-800 rounded-xl p-4 mb-3">
+                                        <h2 className="text-sm font-bold text-foreground mb-3 capitalize">{getMonthLabel(mk)}</h2>
                                         <div className="space-y-1 text-xs">
                                             <div className="flex justify-between">
                                                 <span className="text-zinc-400">Entradas</span>
@@ -302,7 +307,7 @@ export default function KanbanPage() {
                                                             <div
                                                                 ref={provided.innerRef}
                                                                 {...provided.droppableProps}
-                                                                className={`min-h-[52px] rounded-lg border transition-colors ${snapshot.isDraggingOver ? "border-blue-500/50 bg-blue-500/5" : "border-zinc-800 bg-zinc-900/20"} p-1.5 space-y-1.5`}
+                                                                className={`min-h-[52px] rounded-lg border transition-colors ${snapshot.isDraggingOver ? "border-blue-500/50 bg-blue-500/5" : "border-zinc-800 bg-card/20"} p-1.5 space-y-1.5`}
                                                             >
                                                                 {catTxs.map((t, idx) => (
                                                                     <Draggable key={t.id} draggableId={t.id} index={idx}>
@@ -312,7 +317,7 @@ export default function KanbanPage() {
                                                                                 {...provided.draggableProps}
                                                                                 {...provided.dragHandleProps}
                                                                                 onClick={() => openEdit(t)}
-                                                                                className={`bg-zinc-900 border rounded-lg p-3 group transition-all cursor-pointer ${snapshot.isDragging ? "border-blue-500 shadow-lg shadow-blue-500/10" : "border-zinc-800 hover:border-zinc-600"}`}
+                                                                                className={`bg-card border rounded-lg p-3 group transition-all cursor-pointer ${snapshot.isDragging ? "border-blue-500 shadow-lg shadow-blue-500/10" : "border-zinc-800 hover:border-zinc-600"}`}
                                                                             >
                                                                                 <div className="flex justify-between items-start gap-1 mb-1.5">
                                                                                     <div className="flex items-center gap-1.5">
@@ -321,6 +326,11 @@ export default function KanbanPage() {
                                                                                             {t.notes?.includes(TAX_MARKER) ? "%" : t.type === "Entrada" ? "↑" : "↓"}
                                                                                         </div>
                                                                                         <p className="text-xs font-semibold text-zinc-200 leading-tight">{t.name}</p>
+                                                                                        {t.receipt_url && (
+                                                                                            <div className="w-4 h-4 rounded flex items-center justify-center bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 shrink-0" title="Comprovante Anexado">
+                                                                                                <Paperclip size={8} />
+                                                                                            </div>
+                                                                                        )}
                                                                                     </div>
                                                                                     <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0" onClick={(e) => e.stopPropagation()}>
                                                                                         <button onClick={() => openEdit(t)} className="w-5 h-5 rounded flex items-center justify-center text-zinc-500 hover:text-blue-400 hover:bg-blue-400/10 transition-all">
@@ -360,7 +370,7 @@ export default function KanbanPage() {
             )}
 
             <Suspense fallback={<ModalFallback />}>
-                <TransactionModal open={modalOpen} onClose={() => { setModalOpen(false); setEditTx(null); }} onSaved={loadData} categories={categories} projects={projects} editTx={editTx as any} mode={mode} />
+                <TransactionModal open={modalOpen} onClose={() => { setModalOpen(false); setEditTx(null); }} onSaved={loadData} categories={categories} projects={projects} entities={entities} editTx={editTx as any} mode={mode} />
             </Suspense>
             <Suspense fallback={null}>
                 <IagoModal

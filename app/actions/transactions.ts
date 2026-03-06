@@ -123,6 +123,7 @@ export async function createTransaction(data: {
                 due_date: new Date(data.due_date),
                 payment_date: data.payment_date ? new Date(data.payment_date) : undefined,
                 notes: data.notes || (data.is_tax ? "[IMPOSTO]" : undefined),
+                receipt_url: data.receipt_url || undefined,
                 // Use relation connect pattern for FKs
                 ...(data.category_id ? { categories: { connect: { id: data.category_id } } } : {}),
                 ...(data.entity_id ? { entities: { connect: { id: data.entity_id } } } : {}),
@@ -176,6 +177,7 @@ export async function updateTransaction(
         project_id: string;
         notes: string;
         is_tax: boolean;
+        receipt_url: string;
     }>
 ) {
     try {
@@ -188,13 +190,14 @@ export async function updateTransaction(
         const oldTx = await prisma.transactions.findUnique({ where: { id } });
         if (!oldTx) throw new Error("Lançamento não encontrado");
 
-        const { type, due_date, payment_date, category_id, entity_id, project_id, is_tax, name, amount, status, notes } = data;
+        const { type, due_date, payment_date, category_id, entity_id, project_id, is_tax, name, amount, status, notes, receipt_url } = data;
 
         const updateData: any = { updated_at: new Date() };
         if (name !== undefined) updateData.name = name;
         if (amount !== undefined) updateData.amount = amount;
         if (status !== undefined) updateData.status = status;
         if (notes !== undefined) updateData.notes = notes;
+        if (receipt_url !== undefined) updateData.receipt_url = receipt_url;
 
         // Convert enum type
         if (type) updateData.type = type === "entrada" ? "Entrada" : "Sa_da";
@@ -244,6 +247,7 @@ export async function updateTransaction(
         if (category_id !== undefined && category_id !== oldTx.category_id) changes.category_id = { old: oldTx.category_id, new: category_id || null };
         if (project_id !== undefined && project_id !== oldTx.project_id) changes.project_id = { old: oldTx.project_id, new: project_id || null };
         if (entity_id !== undefined && entity_id !== oldTx.entity_id) changes.entity_id = { old: oldTx.entity_id, new: entity_id || null };
+        if (receipt_url !== undefined && receipt_url !== oldTx.receipt_url) changes.receipt_url = { old: oldTx.receipt_url, new: receipt_url || null };
 
         if (Object.keys(changes).length > 0) {
             await prisma.audit_logs.create({

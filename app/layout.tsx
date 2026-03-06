@@ -19,13 +19,13 @@ export default function RootLayout({
 }) {
   return (
     <html lang="pt-BR" className="dark">
-      <body className={`${inter.className} bg-zinc-950 text-white flex h-screen overflow-hidden`}>
+      <body className={`${inter.className} bg-background text-foreground flex h-screen overflow-hidden`}>
         <Providers>
           {/* O nosso novo Menu Lateral */}
           <Sidebar />
 
           {/* A área principal onde o Kanban e outras telas vão aparecer */}
-          <main className="flex-1 overflow-y-auto bg-zinc-950 pt-16 md:pt-0">
+          <main className="flex-1 overflow-y-auto bg-background pt-16 md:pt-0">
             {children}
           </main>
         </Providers>
