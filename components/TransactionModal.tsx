@@ -7,7 +7,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import {
-    Calculator, Check, Loader2, CalendarIcon, X
+    Calculator, Check, Loader2, CalendarIcon, X, HandCoins
 } from "lucide-react";
 import CalendarPicker from "@/components/CalendarPicker";
 import {
@@ -107,6 +107,8 @@ export default function TransactionModal({ open, onClose, onSaved, categories, p
     const isEdit = !!editTx;
     const [isTax, setIsTax] = useState(false);
     const [saving, setSaving] = useState(false);
+    const [isReimbursement, setIsReimbursement] = useState(false);
+    const [reimbursementPerson, setReimbursementPerson] = useState("");
     const [form, setForm] = useState({
         name: "", amount: "", type: "saida", status: "Pago",
         due_date: "", payment_date: "", category_id: "", project_id: "", notes: "",
@@ -115,7 +117,18 @@ export default function TransactionModal({ open, onClose, onSaved, categories, p
     useEffect(() => {
         if (!open) return;
         if (editTx) {
-            setIsTax(!!editTx.notes?.includes(TAX_MARKER));
+            const notesRaw = editTx.notes || "";
+            const isReimbursed = notesRaw.includes("[REEMBOLSO:");
+            let person = "";
+            let cleanedNotes = notesRaw.replace(TAX_MARKER, "").trim();
+            if (isReimbursed) {
+                const match = cleanedNotes.match(/\[REEMBOLSO:(.*?)\]/);
+                if (match) person = match[1];
+                cleanedNotes = cleanedNotes.replace(/\[REEMBOLSO:.*?\]/g, "").trim();
+            }
+
+            setIsReimbursement(isReimbursed);
+            setReimbursementPerson(person);
             setForm({
                 name: editTx.name,
                 amount: String(editTx.amount),
@@ -125,10 +138,12 @@ export default function TransactionModal({ open, onClose, onSaved, categories, p
                 payment_date: "",
                 category_id: editTx.categories?.id || "",
                 project_id: editTx.projects?.id || "",
-                notes: editTx.notes?.replace(TAX_MARKER, "").trim() || "",
+                notes: cleanedNotes,
             });
         } else {
             setIsTax(false);
+            setIsReimbursement(false);
+            setReimbursementPerson("");
             setForm({
                 name: "", amount: "",
                 type: "saida",
@@ -162,7 +177,11 @@ export default function TransactionModal({ open, onClose, onSaved, categories, p
             payment_date: form.payment_date || undefined,
             category_id: form.category_id || undefined,
             project_id: form.project_id || undefined,
-            notes: isTax ? TAX_MARKER : (form.notes || undefined),
+            notes: [
+                isTax ? TAX_MARKER : "",
+                isReimbursement && reimbursementPerson && form.type === "saida" ? `[REEMBOLSO:${reimbursementPerson}]` : "",
+                form.notes || ""
+            ].filter(Boolean).join(" ") || undefined,
             is_tax: isTax,
         };
         try {
@@ -192,16 +211,41 @@ export default function TransactionModal({ open, onClose, onSaved, categories, p
                     )}
                 </DialogHeader>
                 <div className="p-6 space-y-5">
-                    {/* Tax toggle */}
-                    <div className="flex items-center justify-between bg-zinc-900 border border-zinc-800 p-4 rounded-lg">
-                        <div className="flex items-center gap-3">
-                            <Calculator className={isTax ? "text-amber-500" : "text-zinc-500"} size={18} />
-                            <div>
-                                <Label className="text-sm font-bold text-zinc-200">É um pagamento de Imposto?</Label>
-                                <p className="text-[10px] text-zinc-500 uppercase tracking-wider">Cálculo de faturamento líquido</p>
+                    {/* Tax and Reimbursement Toggles */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="flex items-center justify-between bg-zinc-900 border border-zinc-800 p-4 rounded-lg">
+                            <div className="flex items-center gap-3">
+                                <Calculator className={isTax ? "text-amber-500" : "text-zinc-500"} size={18} />
+                                <div>
+                                    <Label className="text-sm font-bold text-zinc-200">Deconto (Imposto)?</Label>
+                                    <p className="text-[10px] text-zinc-500 uppercase tracking-wider">Cálculo líquido</p>
+                                </div>
                             </div>
+                            <Switch checked={isTax} onCheckedChange={setIsTax} className="data-[state=checked]:bg-amber-500" />
                         </div>
-                        <Switch checked={isTax} onCheckedChange={setIsTax} className="data-[state=checked]:bg-amber-500" />
+                        {form.type === "saida" && (
+                            <div className={`flex flex-col justify-center bg-zinc-900 border border-zinc-800 p-3 rounded-lg transition-colors ${isReimbursement ? "border-indigo-500/50 bg-indigo-500/5" : ""}`}>
+                                <div className="flex items-center justify-between mb-2">
+                                    <div className="flex items-center gap-3">
+                                        <HandCoins className={isReimbursement ? "text-indigo-400" : "text-zinc-500"} size={18} />
+                                        <div>
+                                            <Label className="text-sm font-bold text-zinc-200">É um reembolso?</Label>
+                                        </div>
+                                    </div>
+                                    <Switch checked={isReimbursement} onCheckedChange={setIsReimbursement} className="data-[state=checked]:bg-indigo-500" />
+                                </div>
+                                {isReimbursement && (
+                                    <Select value={reimbursementPerson} onValueChange={setReimbursementPerson}>
+                                        <SelectTrigger className="h-8 text-xs bg-zinc-950 border-zinc-800"><SelectValue placeholder="Sócio favorecido..." /></SelectTrigger>
+                                        <SelectContent className="bg-zinc-900 border-zinc-800 text-white">
+                                            <SelectItem value="Matheus">Matheus</SelectItem>
+                                            <SelectItem value="Maykon">Maykon</SelectItem>
+                                            <SelectItem value="Sarah">Sarah</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                )}
+                            </div>
+                        )}
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                         {/* Type */}

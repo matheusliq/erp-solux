@@ -193,6 +193,19 @@ export default function DashboardPlanejadoPage() {
     const reservasObrasDashboard = allProjects.reduce((a, p) => a + (p.budget_solux_reserve || 0), 0);
     const caixaSolux = reservasObrasDashboard - despesasOperacionaisSolux;
 
+    // ── CFO: Reembolsos Societários Pendentes ────────────────────────────────
+    const reembolsosPendentes = saidas.reduce((acc: Record<string, number>, t) => {
+        if (t.notes?.includes("[REEMBOLSO:")) {
+            const match = t.notes.match(/\[REEMBOLSO:(.*?)\]/);
+            if (match && match[1]) {
+                const name = match[1];
+                acc[name] = (acc[name] || 0) + t.amount;
+            }
+        }
+        return acc;
+    }, {});
+    const totalReembolsos = Object.values(reembolsosPendentes).reduce((a, b) => a + b, 0);
+
     // ── Monthly bar data ──────────────────────────────────────────────────────
     const monthlyMap: Record<string, { ent: number; sai: number }> = {};
     allTx.forEach(t => {
@@ -300,8 +313,8 @@ export default function DashboardPlanejadoPage() {
                     )}
 
                     {/* CFO Special KPIs */}
-                    <div className="mb-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
-                        <div className="lg:col-span-1 border border-blue-500/30 bg-blue-500/5 rounded-xl p-5 overflow-hidden relative">
+                    <div className="mb-6 grid grid-cols-1 lg:grid-cols-4 gap-6">
+                        <div className="lg:col-span-1 border border-blue-500/30 bg-blue-500/5 rounded-xl p-5 overflow-hidden relative flex flex-col justify-between">
                             <div className="absolute -top-8 -right-8 w-32 h-32 rounded-full blur-3xl opacity-20 bg-blue-500" />
                             <div className="flex justify-between items-start mb-3">
                                 <div>
@@ -318,6 +331,30 @@ export default function DashboardPlanejadoPage() {
                                 <span className="text-blue-300">Reserva Projetos: {formatBRL(reservasObrasDashboard)}</span>
                                 <span className="text-rose-300">Despesas: {formatBRL(despesasOperacionaisSolux)}</span>
                             </div>
+                        </div>
+
+                        {/* Reembolsos */}
+                        <div className="lg:col-span-1 border border-indigo-500/30 bg-indigo-500/5 rounded-xl p-5 overflow-hidden relative flex flex-col justify-between">
+                            <div className="absolute -top-8 -right-8 w-32 h-32 rounded-full blur-3xl opacity-20 bg-indigo-500" />
+                            <div>
+                                <h3 className="text-lg font-bold text-indigo-400 flex items-center gap-2">
+                                    <Receipt size={18} /> Reembolsos Pendentes
+                                </h3>
+                                <p className="text-[10px] text-zinc-400 uppercase tracking-widest mt-1">Valores agendados e planejados</p>
+                            </div>
+
+                            {totalReembolsos === 0 ? (
+                                <p className="text-sm font-bold text-zinc-500 mt-4">Nenhum pendente</p>
+                            ) : (
+                                <div className="mt-4 space-y-2 relative z-10 w-full">
+                                    {Object.entries(reembolsosPendentes).map(([name, val]) => (
+                                        <div key={name} className="flex justify-between items-center bg-indigo-500/10 border border-indigo-500/20 px-3 py-2 rounded-lg">
+                                            <span className="text-xs font-bold text-indigo-200 uppercase tracking-wider">{name}</span>
+                                            <span className="text-sm font-black text-indigo-400">{formatBRL(val)}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
                         </div>
 
                         <div className="lg:col-span-2 border border-zinc-800 bg-zinc-900/40 rounded-xl p-5 overflow-hidden">

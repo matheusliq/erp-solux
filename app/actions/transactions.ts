@@ -104,8 +104,11 @@ export async function createTransaction(data: {
     is_tax?: boolean;
 }) {
     try {
-        const session = await getServerSession(authOptions);
-        const userId = (session?.user as any)?.id;
+        let userId: string | null = null;
+        try {
+            const session = await getServerSession(authOptions);
+            userId = (session?.user as any)?.id ?? null;
+        } catch (_) { /* auth not critical for this action */ }
 
         const dbType = data.type === "entrada" ? "Entrada" : "Sa_da";
         const validStatuses = ["Pago", "Agendado", "Atrasado", "Cancelado"];
@@ -176,8 +179,11 @@ export async function updateTransaction(
     }>
 ) {
     try {
-        const session = await getServerSession(authOptions);
-        const userId = (session?.user as any)?.id;
+        let userId: string | null = null;
+        try {
+            const session = await getServerSession(authOptions);
+            userId = (session?.user as any)?.id ?? null;
+        } catch (_) { /* auth not critical for this action */ }
 
         const oldTx = await prisma.transactions.findUnique({ where: { id } });
         if (!oldTx) throw new Error("Lançamento não encontrado");
@@ -267,8 +273,11 @@ export async function updateTransaction(
 // ─── DELETE transaction ──────────────────────────────────────────────────────
 export async function deleteTransaction(id: string) {
     try {
-        const session = await getServerSession(authOptions);
-        const userId = (session?.user as any)?.id;
+        let userId: string | null = null;
+        try {
+            const session = await getServerSession(authOptions);
+            userId = (session?.user as any)?.id ?? null;
+        } catch (_) { /* auth not critical for this action */ }
 
         const oldTx = await prisma.transactions.findUnique({ where: { id } });
 

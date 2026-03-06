@@ -22,10 +22,10 @@ import { getProjects, createProject, updateProject, deleteProject } from "@/app/
 // The constraint "entities_type_check" expects lowercase values.
 // If your constraint uses different values, update this list.
 const ENTITY_TYPES = [
-    { value: "cliente", label: "Cliente" },
-    { value: "fornecedor", label: "Fornecedor" },
-    { value: "subcontratado", label: "Subcontratado" },
-    { value: "parceiro", label: "Parceiro" },
+    { value: "client", label: "Cliente" },
+    { value: "supplier", label: "Fornecedor" },
+    { value: "partner", label: "Parceiro" },
+    { value: "employee", label: "Funcionário" },
 ];
 
 const PROJECT_STATUS = [
@@ -66,12 +66,13 @@ const fmtBRL = (v: number) => v.toLocaleString("pt-BR", { style: "currency", cur
 
 // ── ProjectFinancialSummary ───────────────────────────────────────────────────
 function ProjectFinancialSummary({
-    projectId, contractValue, soluxReserve, partnersSplit,
+    projectId, contractValue, soluxReserve, partnersSplit, additionalEntradas = 0,
 }: {
     projectId: string;
     contractValue?: number;
     soluxReserve?: number;
     partnersSplit: any[];
+    additionalEntradas?: number;
 }) {
     const [entradas, setEntradas] = useState<number | null>(null);
     const [saidas, setSaidas] = useState<number | null>(null);
@@ -110,7 +111,7 @@ function ProjectFinancialSummary({
     }, [projectId]);
 
     const saldo = entradas !== null && saidas !== null
-        ? entradas - (soluxReserve || 0) - saidas
+        ? (entradas + additionalEntradas) - (soluxReserve || 0) - saidas
         : null;
 
     return (
@@ -125,7 +126,7 @@ function ProjectFinancialSummary({
                 <span className="text-[9px] text-zinc-600 font-bold uppercase tracking-widest w-20 shrink-0">Entradas</span>
                 {loading
                     ? <span className="text-[11px] text-zinc-600 animate-pulse">…</span>
-                    : <span className="text-[11px] font-bold text-emerald-400">{entradas !== null ? `+ ${fmtBRL(entradas)}` : "—"}</span>}
+                    : <span className="text-[11px] font-bold text-emerald-400">{entradas !== null ? `+ ${fmtBRL(entradas + additionalEntradas)}` : "—"}</span>}
             </div>
             {soluxReserve !== undefined && soluxReserve > 0 && (
                 <div className="flex items-baseline gap-1.5">
@@ -187,7 +188,7 @@ export default function ConfiguracoesPage() {
 
     // ── Entity form ───────────────────────────────────────────────────────────
     const [entName, setEntName] = useState("");
-    const [entType, setEntType] = useState("cliente");
+    const [entType, setEntType] = useState("client");
     const [entEmail, setEntEmail] = useState("");
     const [entPhone, setEntPhone] = useState("");
     const [entDocument, setEntDocument] = useState("");
@@ -243,7 +244,7 @@ export default function ConfiguracoesPage() {
             setCatType(item ? (item.type === "Entrada" ? "entrada" : "saida") : "saida");
         } else if (activeTab === "entidades") {
             setEntName(item?.name || "");
-            setEntType(item?.type || "cliente");
+            setEntType((item?.type || "client").toLowerCase());
             setEntEmail(item?.email || "");
             setEntPhone(item?.phone || "");
             setEntDocument(item?.document || "");
@@ -282,7 +283,7 @@ export default function ConfiguracoesPage() {
         } else if (activeTab === "entidades") {
             const payload = {
                 name: entName,
-                type: entType, // lowercase — matches DB constraint
+                type: entType.toLowerCase(), // enforce lowercase — matches DB constraint
                 email: entEmail || undefined,
                 phone: entPhone || undefined,
                 document: entDocument || undefined,
@@ -591,9 +592,10 @@ export default function ConfiguracoesPage() {
                 <TabsContent value="obras" className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     {isLoading ? (
                         <div className="col-span-3 flex justify-center py-10 text-zinc-500"><Loader2 className="animate-spin mr-2" /> Carregando...</div>
-                    ) : (
-                        [
-                            { id: "null", name: "Centro de Custo Solux", status: "active", client_name: "Administrativo & Sede", is_default: true },
+                    ) : (() => {
+                        const totalSoluxReserveActive = listaProjetos.reduce((a, proj) => a + (Number(proj.budget_solux_reserve) || 0), 0);
+                        return [
+                            { id: "null", name: "Centro de Custo Solux", status: "active", client_name: "Administrativo & Sede", is_default: true, additional_entradas: totalSoluxReserveActive },
                             ...listaProjetos
                         ].map(p => {
                             const parsedSplit = typeof p.partners_split === "string" ? (() => { try { return JSON.parse(p.partners_split); } catch { return []; } })() : (Array.isArray(p.partners_split) ? p.partners_split : []);
@@ -615,14 +617,15 @@ export default function ConfiguracoesPage() {
                                         projectId={p.id}
                                         contractValue={p.contract_value ? Number(p.contract_value) : undefined}
                                         soluxReserve={p.budget_solux_reserve ? Number(p.budget_solux_reserve) : undefined}
+                                        additionalEntradas={p.additional_entradas || 0}
                                         partnersSplit={parsedSplit}
                                     />
 
                                     <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 flex gap-1">
-                                        <button onClick={e => { e.stopPropagation(); openExtrato(p, "obra"); }} title="Extrato" className="w-6 h-6 rounded bg-zinc-800 hover:bg-blue-900 flex items-center justify-center text-zinc-400 hover:text-blue-400"><FileText size={11} /></button>
+                                        <button onClick={e => { e.stopPropagation(); openExtrato(p as any, "obra"); }} title="Extrato" className="w-6 h-6 rounded bg-zinc-800 hover:bg-blue-900 flex items-center justify-center text-zinc-400 hover:text-blue-400"><FileText size={11} /></button>
                                         {!p.is_default && (
                                             <>
-                                                <button onClick={e => { e.stopPropagation(); handleOpenModal(p); }} className="w-6 h-6 rounded bg-zinc-800 hover:bg-zinc-700 flex items-center justify-center text-zinc-400 hover:text-white">
+                                                <button onClick={e => { e.stopPropagation(); handleOpenModal(p as any); }} className="w-6 h-6 rounded bg-zinc-800 hover:bg-zinc-700 flex items-center justify-center text-zinc-400 hover:text-white">
                                                     <Pencil size={11} />
                                                 </button>
                                                 <button onClick={e => { e.stopPropagation(); handleDelete("obras", p.id); }} className="w-6 h-6 rounded bg-zinc-800 hover:bg-rose-900 flex items-center justify-center text-zinc-400 hover:text-rose-400">
@@ -633,8 +636,8 @@ export default function ConfiguracoesPage() {
                                     </div>
                                 </div>
                             );
-                        })
-                    )}
+                        });
+                    })()}
                 </TabsContent>
 
                 {/* ── Categorias ── */}
@@ -671,10 +674,10 @@ export default function ConfiguracoesPage() {
                     <div className="flex flex-wrap gap-2">
                         {[
                             { value: "todos", label: "Todos" },
-                            { value: "cliente", label: "Clientes" },
-                            { value: "fornecedor", label: "Fornecedores" },
-                            { value: "subcontratado", label: "Subcontratados" },
-                            { value: "parceiro", label: "Parceiros" },
+                            { value: "client", label: "Clientes" },
+                            { value: "supplier", label: "Fornecedores" },
+                            { value: "partner", label: "Parceiros" },
+                            { value: "employee", label: "Funcionários" },
                         ].map(opt => (
                             <button
                                 key={opt.value}
@@ -702,7 +705,7 @@ export default function ConfiguracoesPage() {
                                     <p>Nenhum resultado encontrado.</p>
                                 </div>
                             );
-                            const typeLabel: Record<string, string> = { cliente: "Cliente", fornecedor: "Fornecedor", subcontratado: "Subcontratado", parceiro: "Parceiro" };
+                            const typeLabel: Record<string, string> = { client: "Cliente", supplier: "Fornecedor", partner: "Parceiro", employee: "Funcionário" };
                             return filtered.map(ent => (
                                 <div key={ent.id} className="relative bg-zinc-900/20 border border-zinc-800 p-5 rounded-xl hover:border-blue-500/40 transition-all group cursor-pointer" onClick={() => handleOpenModal(ent)}>
                                     <div className="flex justify-between items-start mb-3">
