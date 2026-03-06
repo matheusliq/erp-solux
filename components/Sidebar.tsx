@@ -147,7 +147,10 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
 }
 
 export default function Sidebar() {
+    const pathname = usePathname();
     const [mobileOpen, setMobileOpen] = useState(false);
+
+    if (pathname === "/login") return null;
 
     return (
         <>

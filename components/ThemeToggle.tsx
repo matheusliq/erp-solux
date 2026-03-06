@@ -2,9 +2,21 @@
 
 import { useTheme } from "next-themes";
 import { Moon, Sun, Monitor } from "lucide-react";
+import { useEffect, useState } from "react";
 
 export default function ThemeToggle() {
     const { theme, setTheme } = useTheme();
+    const [mounted, setMounted] = useState(false);
+
+    useEffect(() => {
+        setMounted(true);
+    }, []);
+
+    if (!mounted) {
+        return (
+            <div className="flex items-center gap-1 bg-zinc-900 border border-zinc-800 p-1 rounded-lg w-[100px] h-[34px]"></div>
+        );
+    }
 
     return (
         <div className="flex items-center gap-1 bg-zinc-900 border border-zinc-800 p-1 rounded-lg">
