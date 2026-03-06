@@ -7,7 +7,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import {
-    Calculator, Check, Loader2, CalendarIcon, X, HandCoins
+    Calculator, Check, Loader2, CalendarIcon, X, HandCoins, Copy, CheckCheck
 } from "lucide-react";
 import CalendarPicker from "@/components/CalendarPicker";
 import {
@@ -24,6 +24,18 @@ import { Label } from "@/components/ui/label";
 import { createTransaction, updateTransaction } from "@/app/actions/transactions";
 
 const TAX_MARKER = "[IMPOSTO]";
+
+// ── Helpers ──────────────────────────────────────────────────────────────────
+const todayISO = () => new Date().toISOString().slice(0, 10);
+
+function inferStatus(dateISO: string, mode: "real" | "planejado"): string {
+    if (mode === "planejado") return "Agendado";
+    if (!dateISO) return "Pago";
+    const today = todayISO();
+    if (dateISO > today) return "Agendado";
+    if (dateISO < today) return "Atrasado";
+    return "Pago"; // today
+}
 
 // ── Minimal date-picker field with CalendarPicker popover ────────────────────
 function formatDisplayDate(iso: string) {
@@ -109,10 +121,18 @@ export default function TransactionModal({ open, onClose, onSaved, categories, p
     const [saving, setSaving] = useState(false);
     const [isReimbursement, setIsReimbursement] = useState(false);
     const [reimbursementPerson, setReimbursementPerson] = useState("");
+    const [copied, setCopied] = useState(false);
     const [form, setForm] = useState({
         name: "", amount: "", type: "saida", status: "Pago",
         due_date: "", payment_date: "", category_id: "", project_id: "", notes: "",
     });
+
+    const handleCopyId = () => {
+        if (!editTx) return;
+        navigator.clipboard.writeText(editTx.id);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+    };
 
     useEffect(() => {
         if (!open) return;
@@ -144,11 +164,13 @@ export default function TransactionModal({ open, onClose, onSaved, categories, p
             setIsTax(false);
             setIsReimbursement(false);
             setReimbursementPerson("");
+            setCopied(false);
+            const defaultDate = todayISO();
             setForm({
                 name: "", amount: "",
                 type: "saida",
-                status: mode === "planejado" ? "Agendado" : "Pago",
-                due_date: "", payment_date: "", category_id: "", project_id: "", notes: "",
+                status: inferStatus(defaultDate, mode),
+                due_date: defaultDate, payment_date: "", category_id: "", project_id: "", notes: "",
             });
         }
     }, [editTx, open, mode]);
@@ -161,9 +183,11 @@ export default function TransactionModal({ open, onClose, onSaved, categories, p
         ? [{ value: "Agendado", label: "📅 Agendado" }]
         : [
             { value: "Pago", label: "✅ Pago" },
+            { value: "Agendado", label: "📅 Agendado" },
             { value: "Atrasado", label: "⚠️ Atrasado" },
             { value: "Cancelado", label: "❌ Cancelado" },
         ];
+
 
     const handleSave = async () => {
         if (!form.name || !form.amount || !form.due_date) return;
@@ -205,9 +229,20 @@ export default function TransactionModal({ open, onClose, onSaved, categories, p
                         {isEdit ? "Editar Lançamento" : mode === "planejado" ? "Novo Lançamento Planejado" : "Novo Lançamento"}
                     </DialogTitle>
                     {isEdit && editTx && (
-                        <div className="bg-blue-500/10 text-blue-400 font-mono text-xs px-2.5 py-1 rounded-md border border-blue-500/20 shadow-sm flex items-center gap-1.5 select-all" title="ID do lançamento">
-                            <span className="font-bold uppercase tracking-wider text-[9px] text-blue-500/70">ID</span> {editTx.id}
-                        </div>
+                        <button
+                            onClick={handleCopyId}
+                            title="Clique para copiar o ID"
+                            className={`flex items-center gap-1.5 font-mono text-xs px-2.5 py-1.5 rounded-lg border transition-all duration-200 cursor-pointer ${copied
+                                ? "bg-emerald-500/15 border-emerald-500/40 text-emerald-400"
+                                : "bg-blue-500/10 border-blue-500/20 text-blue-400 hover:bg-blue-500/20 hover:border-blue-500/50"
+                                }`}
+                        >
+                            <span className="font-bold uppercase tracking-wider text-[9px] opacity-70">ID</span>
+                            <span className="max-w-[120px] truncate">{editTx.id}</span>
+                            {copied
+                                ? <CheckCheck size={12} className="text-emerald-400 shrink-0" />
+                                : <Copy size={12} className="shrink-0 opacity-60" />}
+                        </button>
                     )}
                 </DialogHeader>
                 <div className="p-6 space-y-5">
@@ -321,7 +356,10 @@ export default function TransactionModal({ open, onClose, onSaved, categories, p
                             <Label className="text-[11px] font-bold text-zinc-500 uppercase">Data de Vencimento *</Label>
                             <DatePickerField
                                 value={form.due_date}
-                                onChange={v => setForm({ ...form, due_date: v })}
+                                onChange={v => {
+                                    const newStatus = !isEdit ? inferStatus(v, mode) : form.status;
+                                    setForm({ ...form, due_date: v, status: newStatus });
+                                }}
                                 placeholder="DD/MM/AAAA"
                                 label="Selecionar data"
                             />
