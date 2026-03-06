@@ -102,6 +102,7 @@ export async function createTransaction(data: {
     project_id?: string;
     notes?: string;
     is_tax?: boolean;
+    receipt_url?: string;
 }) {
     try {
         let userId: string | null = null;
